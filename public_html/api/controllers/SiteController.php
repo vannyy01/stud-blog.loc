@@ -5,6 +5,8 @@ namespace api\controllers;
 
 use common\models\User;
 use Yii;
+use yii\base\UserException;
+use yii\filters\auth\CompositeAuth;
 use yii\filters\auth\HttpBearerAuth;
 use yii\filters\Cors;
 use yii\filters\AccessControl;
@@ -16,48 +18,35 @@ use yii\helpers\ArrayHelper;
 use yii\web\Response;
 use yii\web\ServerErrorHttpException;
 
-
 class SiteController extends Controller
 {
     public function behaviors()
     {
         $behaviors = parent::behaviors();
-        $behaviors['authenticator']['only'] = ['create', 'update', 'delete'];
+        //unset($behaviors['authenticator']);
+
         $behaviors['authenticator']['authMethods'] = [
             HttpBearerAuth::className(),
         ];
+        $behaviors['authenticator']['only'] = ['info', ];
         $behaviors['access'] = [
             'class' => AccessControl::className(),
             'rules' => [
                 ['allow' => true,
-                    'actions' => ['login', 'test'],
+                    'actions' => ['login', 'active'],
                     'roles' => ['?'],
                 ],
             ],
         ];
-
-        $behaviors['verbs'] = [
-            'class' => VerbFilter::className(),
-            'actions' => [
-                'login' => ['post', 'options'],
-            ]
+        $behaviors['corsFilter'] = [
+            'class' => Cors::className(),
         ];
-        return array_merge($behaviors, [
-
-            // For cross-domain AJAX request
-            'corsFilter' => [
-                'class' => Cors::className(),
-                'cors' => [
-                    'Origin' => ['*'],
-                    //'Access-Control-Request-Method' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
-                    'Access-Control-Request-Headers' => ['*'],
-                ],
-            ],
-        ]);
+        return $behaviors;
     }
 
     public function beforeAction($action)
     {
+        $actions = parent::actions();
         if (in_array($action->id, ['login'])) {
             $this->enableCsrfValidation = false;
         }
@@ -77,60 +66,36 @@ class SiteController extends Controller
         ];
     }
 
-    public function actionTest()
+    public function actionActive()
     {
-        return Yii::$app->user->isGuest;
+        return Yii::$app->request->getHeaders();
+        return !Yii::$app->user->isGuest;
     }
 
     public function actionLogin()
     {
         $this->enableCsrfValidation = false;
-        $result = [];
-        $user = User::findByEmail(Yii::$app->request->getBodyParam('login'));
-        if (!$user) {
-            $user = User::findByUserName(Yii::$app->request->getBodyParam('login'));
-            if (!$user)
-                $result = [
-                    'success' => 0,
-                    'message' => 'No such user found'
-                ];
-        }
-        if ($user)
-            if (!$user->validatePassword(Yii::$app->request->getBodyParam('password'))) {
-                $result = [
-                    'success' => 0,
-                    'message' => 'Incorrect password'
-                ];
-                throw new ServerErrorHttpException($result);
-            } else {
-                $token = new Token();
-                $token->token = Yii::$app->getSecurity()->generateRandomString(12);
-                $token->user_id = $user->user_id;
-                $oldToken = Token::getTokenByUserId($token->user_id);
-                if ($oldToken->token) {
-                    $oldToken->updateAttributes([
-                        'token' => $token->token,
-                        'expired_at' => time() + 3600 * 5
-                    ]);
-                    Token::deleteAll('expired_at < ' . time());
-                    $result = [
-                        'success' => 1,
-                        'username' => $user->user_name,
-                        'payload' => $user,
-                        'token' => $token->token
-                    ];
-                    return $result;
-                }
-                $token->expired_at = time() + 3600 * 5;
-                $token->save();
-                Token::deleteAll('expired_at < ' . time());
-                $result = [
-                    'success' => 1,
-                    'username' => $user->user_name,
-                    'payload' => $user,
-                    'token' => $token->token
-                ];
+        $model = new LoginForm();
+        $model->load(Yii::$app->request->bodyParams, '');
+        if ($token = $model->auth()) {
+            return $token;
+        } elseif (!$token = $model->auth()) {
+            $model->load(Yii::$app->request->bodyParams, '');
+            if ($token = $model->auth()) {
+                return $token;
             }
-        return $result;
+        } else {
+            return $model;
+            throw new ServerErrorHttpException('Invalid login or password');
+        }
+
+    }
+
+    protected function verbs()
+    {
+        return [
+             'info' => ['get'],
+            'login' => ['post' ,'options'],
+        ];
     }
 }

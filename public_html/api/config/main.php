@@ -54,9 +54,17 @@ return [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
-                ['class' => 'yii\rest\UrlRule', 'controller' => ['user']],
-                '<controller:\w+>' => '<controller:\w+>/index',
-                '<controller:\w+>/<action:\w+>/' => '<controller>/<action>',
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'pluralize' => false, //отключаем преобразование во множественную форму
+                    'controller' => 'post',
+                    'extraPatterns' =>[
+                        'GET test' => 'test',
+                        'OPTIONS test' => 'options'
+                    ],
+                    'except' => ['index', 'create', 'delete']
+                ],                //'<controller:\w+>' => '<controller:\w+>/index',
+                //'<controller:\w+>/<action:\w+>/' => '<controller>/<action>',
             ],
         ],
     ],

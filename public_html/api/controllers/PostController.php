@@ -9,9 +9,12 @@ use common\models\Post;
 use common\models\User;
 use Yii;
 use yii\filters\AccessControl;
+use yii\filters\auth\CompositeAuth;
 use yii\filters\auth\HttpBasicAuth;
 use yii\filters\auth\HttpBearerAuth;
+use yii\filters\Cors;
 use yii\filters\VerbFilter;
+use yii\helpers\ArrayHelper;
 use yii\helpers\Url;
 use yii\rest\ActiveController;
 use yii\web\ForbiddenHttpException;
@@ -31,13 +34,26 @@ class PostController extends ActiveController
     public function behaviors()
     {
         $behaviors = parent::behaviors();
-        $behaviors['authenticator']['only'] = ['create', 'update', 'delete'];
+        $auth = $behaviors['authenticator'];
+        unset($behaviors['authenticator']);
+        $behaviors['corsFilter'] = [
+            'class' => \yii\filters\Cors::className(),
+            'cors' => [
+                'Origin' => ['http://localhost:3030'],
+                'Access-Control-Request-Method' => ['GET', 'POST', 'OPTIONS'],
+                'Access-Control-Request-Headers' => ['*'],
+                'Access-Control-Allow-Credentials' => null,
+            ],
+        ];
+
+        $behaviors['authenticator'] = $auth;
         $behaviors['authenticator']['authMethods'] = [
             HttpBearerAuth::className(),
         ];
+        $behaviors['authenticator']['only'] = ['test', 'create', 'update', 'delete'];
         $behaviors['access'] = [
             'class' => AccessControl::className(),
-            'only' => ['create', 'update', 'delete'],
+            'only' => ['test', 'create', 'update', 'delete'],
             'rules' => [
                 [
                     'allow' => true,
@@ -45,29 +61,9 @@ class PostController extends ActiveController
                 ],
             ],
         ];
-
-        $behaviors['verbs'] = [
-            'class' => VerbFilter::className(),
-            'actions' => [
-                'create' => ['post'],
-                'delete' => ['delete'],
-            ]
-        ];
-        return array_merge($behaviors, [
-
-            // For cross-domain AJAX request
-            'corsFilter' => [
-                'class' => \yii\filters\Cors::className(),
-                'cors' => [
-                    // restrict access to domains:
-                    'Origin' => static::allowedDomains(),
-                    'Access-Control-Request-Method' => ['POST'],
-                    'Access-Control-Allow-Credentials' => true,
-                    'Access-Control-Max-Age' => 3600,                 // Cache (seconds)
-                ],
-            ]
-        ]);
+        return $behaviors;
     }
+
 
     public function actions()
     {
@@ -78,8 +74,10 @@ class PostController extends ActiveController
     }
 
 
-    public function actionTest(){
-        return User::findIdentityByAccessToken('E_kNcPl4qvTi');
+    public function actionTest()
+    {
+        //return Yii::$app->request->getHeaders();
+        return !Yii::$app->user->isGuest;
 
     }
 
@@ -113,5 +111,10 @@ class PostController extends ActiveController
                 throw  new ForbiddenHttpException('Forbidden.');
             }
         }
+    }
+
+    protected function verbs()
+    {
+        return ['test' => ['get']];
     }
 }

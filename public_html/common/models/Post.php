@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 namespace common\models;
 
+use voskobovich\behaviors\ManyToManyBehavior;
 use Yii;
 use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
 use common\models\User;
 use common\models\Blog;
+use yii2tech\ar\linkmany\LinkManyBehavior;
 
 /**
  * This is the model class for table "posts".
@@ -20,7 +22,8 @@ use common\models\Blog;
  * @property string $post_text
  * @property string $created_at
  * @property int $rait
- *
+ * @property int $tagsIds
+ * @property int categoryIds
  * @property Comments[] $comments
  * @property Blogs $blog
  * @property PostsHasCategory[] $postsHasCategories
@@ -50,7 +53,8 @@ class Post extends ActiveRecord
             [['created_at'], 'safe'],
             [['post_name'], 'string', 'max' => 255],
             [['short_description'], 'string', 'max' => 200],
-            [['blog_id', 'user_id'], 'exist', 'skipOnError' => true, 'targetClass' => Blogs::className(), 'targetAttribute' => ['blog_id' => 'blog_id', 'user_id' => 'user_id']],
+            [['blog_id', 'user_id'], 'exist', 'skipOnError' => true, 'targetClass' => Blog::className(), 'targetAttribute' => ['blog_id' => 'blog_id', 'user_id' => 'user_id']],
+            [['tagsIds', 'categoryIds'], 'safe']
         ];
     }
 
@@ -71,6 +75,22 @@ class Post extends ActiveRecord
         ];
     }
 
+    public function behaviors()
+    {
+        return [
+            'linkTags' => [
+                'class' => LinkManyBehavior::className(),
+                'relation' => 'tags', // relation, which will be handled
+                'relationReferenceAttribute' => 'tagsIds', // virtual attribute, which is used for related records specification
+            ],
+            'linkCategoryIds' => [
+                'class' => LinkManyBehavior::className(),
+                'relation' => 'category', // relation, which will be handled
+                'relationReferenceAttribute' => 'categoryIds', // virtual attribute, which is used for related records specification
+            ],
+        ];
+    }
+
     /**
      * @return \yii\db\ActiveQuery
      */
@@ -87,29 +107,15 @@ class Post extends ActiveRecord
         return $this->hasOne(Blog::className(), ['blog_id' => 'blog_id', 'user_id' => 'user_id']);
     }
 
-    /**
-     * @return \yii\db\ActiveQuery
-     */
-    public function getPostsHasCategories()
-    {
-        return $this->hasMany(PostsHasCategory::className(), ['post_id' => 'post_id']);
-    }
 
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getCategories()
+    public function getCategory()
     {
         return $this->hasMany(Category::className(), ['id' => 'category_id'])->viaTable('posts_has_category', ['post_id' => 'post_id']);
     }
 
-    /**
-     * @return \yii\db\ActiveQuery
-     */
-    public function getPostsHasTags()
-    {
-        return $this->hasMany(PostsHasTags::className(), ['posts_post_id' => 'post_id']);
-    }
 
     /**
      * @return \yii\db\ActiveQuery
@@ -136,6 +142,11 @@ class Post extends ActiveRecord
         return new PostQuery(get_called_class());
     }
 
+    public static function findByPostName($post_name)
+    {
+        return static::findOne(['post_name' => $post_name]);
+    }
+
     /**
      * @return array with needing fields
      */
@@ -146,10 +157,13 @@ class Post extends ActiveRecord
             'post_name',
             'short_description',
             'created_at',
-            'category' => 'categories',
-            'rait'
+            'category',
+            'categoryIds',
+            'rait',
+            'tagsIds',
         ];
     }
+
     /**
      * @return array || consist fields that exist in depended table
      */
@@ -158,7 +172,7 @@ class Post extends ActiveRecord
         return [
             'text' => 'post_text',
             'author' => 'user',
-            'blog' => 'blog'
+            'blog' => 'blog',
         ];
     }
 }

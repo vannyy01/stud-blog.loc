@@ -4,31 +4,29 @@ declare(strict_types=1);
 namespace api\controllers;
 
 use api\models\PostSearch;
+use common\models\Blog;
 use common\models\Category;
 use common\models\Post;
-use common\models\Tags;
 use Yii;
 use yii\filters\AccessControl;
 use yii\filters\auth\HttpBearerAuth;
+use yii\helpers\Url;
 use yii\rest\ActiveController;
 use yii\web\ForbiddenHttpException;
 use yii\web\ServerErrorHttpException;
 
-class PostController extends ActiveController
+class BlogController extends ActiveController
 {
     public $modelClass = 'common\models\Post';
 
-    private static function allowedDomains(): array
+    private static function allowedDomains()
     {
         return [
             'http://localhost:3030'
         ];
     }
 
-    /**
-     * @return array
-     */
-    public function behaviors(): array
+    public function behaviors()
     {
         $behaviors = parent::behaviors();
         $auth = $behaviors['authenticator'];
@@ -47,11 +45,16 @@ class PostController extends ActiveController
         $behaviors['authenticator']['authMethods'] = [
             HttpBearerAuth::className(),
         ];
-        $behaviors['authenticator']['only'] = ['test', 'create', 'update', 'delete'];
+        $behaviors['authenticator']['only'] = ['test', 'blogs', 'create', 'update', 'delete'];
         $behaviors['access'] = [
             'class' => AccessControl::className(),
-            'only' => ['test', 'update', 'delete'],
+            'only' => ['test', 'validate', 'create', 'update', 'delete'],
             'rules' => [
+                [
+                    'allow' => true,
+                    'actions' => ['validate'],
+                    'roles' => ['?'],
+                ],
                 [
                     'allow' => true,
                     'roles' => ['@'],
@@ -71,16 +74,6 @@ class PostController extends ActiveController
     }
 
 
-    public function actionValidate(): bool
-    {
-        if (@Post::findByPostName(Yii::$app->request->queryParams["post_name"])) {
-            return false;
-        } else {
-            return true;
-        }
-
-    }
-
     public function actionTest()
     {
         //return Yii::$app->request->getHeaders();
@@ -88,61 +81,42 @@ class PostController extends ActiveController
 
     }
 
+    public function actionBlogs()
+    {
+        return Blog::findBlogByUserID(Yii::$app->user->id);
+    }
+
+
     public function actionCreate()
     {
-        $model = new Post();
-        $items = [];
-        $existTags = Yii::$app->getRequest()->getBodyParam("existTags") == false || NULL
-            ? [] : Yii::$app->getRequest()->getBodyParam("existTags");
-        $newTags = Yii::$app->getRequest()->getBodyParam("newTags");
-        if ($newTags) {
-            foreach ($newTags as $value) {
-                $tag = new Tags();
-                $tag->tag = $value;
-                $tag->save();
-            }
-            foreach ($newTags as $key => $value) {
-                $items[$key] = Tags::getTagId($value)->id;
-            }
-        }
+        $model = new Blog();
         $model->user_id = Yii::$app->user->id;
-        $model->tagsIds = array_merge($existTags, $items);
-        $model->categoryIds = floatval(Yii::$app->getRequest()->getBodyParam("category"));
         if ($model->load(Yii::$app->getRequest()->getBodyParams(), '')) {
-            if ($model->save() === false) {
-                if (!$model->hasErrors()) {
-                    throw new ServerErrorHttpException('Failed to create the object for unknown reason.');
-                }
-                throw new ServerErrorHttpException('Failed to create the object for incorect data.');
+            if ($model::findByBlogName($model->blog_name)) {
+                return Yii::$app->response->setStatusCode(432, 'Blog name has taken')->send();
+            } else if ($model->save() === false && !$model->hasErrors()) {
+                throw new ServerErrorHttpException('Failed to update the object for unknown reason.');
             }
-            return ['status' => true];
-        } else {
-            throw new ServerErrorHttpException('Don`t create post.');
+            return $model;
         }
-    }
 
-    /**
-     * @return array|Tags[]
-     */
-    public function actionTags(): array
-    {
-        $tag = Yii::$app->getRequest()->getQueryParam("tag");
-        return Tags::findByTag($tag);
-    }
-
-    /**
-     * @return array|Category[]
-     */
-    public function actionCategory(): array
-    {
-        $tag = Yii::$app->getRequest()->getQueryParam("category");
-        return Category::findCategory($tag);
     }
 
     public function prepareDataProvider()
     {
         $searchModel = new PostSearch();
         return $searchModel->search(Yii::$app->request->queryParams);
+    }
+
+
+    public function actionValidate(): bool
+    {
+        if (@Blog::findByBlogName(Yii::$app->request->queryParams["blog_name"])) {
+            return false;
+        } else {
+            return true;
+        }
+
     }
 
     public function checkAccess($action, $model = null, $params = [])
@@ -154,12 +128,10 @@ class PostController extends ActiveController
         }
     }
 
-    protected function verbs(): array
+    protected function verbs()
     {
         return ['test' => ['get'],
-            'create' => ['post', 'options'],
-            'tags' => ['get', 'options'],
-            'category' => ['get', 'options']
+            'blogs' => ['get']
         ];
     }
 }

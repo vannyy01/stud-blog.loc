@@ -58,13 +58,43 @@ return [
                     'class' => 'yii\rest\UrlRule',
                     'pluralize' => false, //отключаем преобразование во множественную форму
                     'controller' => 'post',
-                    'extraPatterns' =>[
+                    'extraPatterns' => [
                         'GET test' => 'test',
-                        'OPTIONS test' => 'options'
+                        'OPTIONS test' => 'options',
+                        'GET tags' => 'tags',
+                        'OPTIONS tags' => 'options',
+                        'GET category' => 'category',
+                        'OPTIONS category' => 'options',
+                        'OPTIONS create' => 'options'
                     ],
                     'except' => ['index', 'create', 'delete']
-                ],                //'<controller:\w+>' => '<controller:\w+>/index',
-                //'<controller:\w+>/<action:\w+>/' => '<controller>/<action>',
+                ],
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'pluralize' => false, //отключаем преобразование во множественную форму
+                    'controller' => 'profile',
+                    'extraPatterns' => [
+                        'POST create' => 'create',
+                        'OPTIONS create' => 'options',
+                        'GET user' => 'user',
+                        'OPTIONS user' => 'options',
+                        'PUT PATCH update' => 'update',
+                        'OPTIONS update' => 'options',
+                    ],
+                ],
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'pluralize' => false, //отключаем преобразование во множественную форму
+                    'controller' => 'blog',
+                    'extraPatterns' => [
+                        'GET validate' => 'validate',
+                        'OPTIONS validate' => 'options',
+                        'GET blogs' => 'blogs',
+                        'OPTIONS blogs' => 'options',
+                        'POST create' => 'create',
+                        'OPTIONS create' => 'options',
+                    ],
+                ],
             ],
         ],
     ],

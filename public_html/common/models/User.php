@@ -45,10 +45,10 @@ class User extends ActiveRecord implements IdentityInterface
     public function rules()
     {
         return [
-            [['user_name', 'email', 'pass_hash', 'token'], 'required'],
+            [['user_name', 'email', 'pass_hash'], 'required'],
             [['role'], 'integer'],
             [['created_at'], 'safe'],
-            [['user_name', 'pass_hash', 'token'], 'string', 'max' => 45],
+            [['user_name', 'pass_hash'], 'string', 'max' => 45],
             [['email'], 'string', 'max' => 80],
             [['user_name'], 'unique'],
             [['email'], 'unique'],
@@ -67,7 +67,6 @@ class User extends ActiveRecord implements IdentityInterface
             'pass_hash' => 'Pass Hash',
             'role' => 'Role',
             'created_at' => 'Created At',
-            'token' => 'Token',
         ];
     }
 
@@ -107,6 +106,9 @@ class User extends ActiveRecord implements IdentityInterface
         return $this->pass_hash;
     }
 
+    public function setPassword($password){
+        $this->pass_hash = sha1(sha1($password));
+    }
     /**
      * @return \yii\db\ActiveQuery
      */
@@ -160,6 +162,13 @@ class User extends ActiveRecord implements IdentityInterface
         return [
             'id' => 'user_id',
             'name' => 'user_name',
+        ];
+    }
+    public function extraFields(): array
+    {
+        return [
+            'email' => 'email',
+            'info' => 'userInfo'
         ];
     }
 

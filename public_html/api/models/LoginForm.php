@@ -16,6 +16,7 @@ class LoginForm extends Model
 
     private $_user;
 
+    const EXPIRED_TIME = 3600 * 24 ;
     /**
      * @inheritdoc
      */
@@ -51,11 +52,19 @@ class LoginForm extends Model
      */
     public function auth()
     {
+        Token::deleteAll('expired_at < ' . time());
         if ($this->validate()) {
             $token = new Token();
             $token->user_id = $this->getUser()->user_id;
-            $token->generateToken(time() + 3600 * 24);
-            return $token->save() ? $token : null;
+            $token->generateToken(time() + static::EXPIRED_TIME);
+            $oldToken = Token::getTokenByUserId($token->user_id);
+            if (isset($oldToken->token)) {
+                return $oldToken->updateAttributes([
+                    'token' => $token->token,
+                    'expired_at' => time() + static::EXPIRED_TIME
+                ]) ? $oldToken : null;
+            }
+                return $token->save() ? $token : null;
         } else {
             return null;
         }

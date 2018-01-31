@@ -38,7 +38,7 @@ class Blog extends \yii\db\ActiveRecord
             [['blog_name'], 'string', 'max' => 100],
             [['short_description'], 'string', 'max' => 255],
             [['blog_name'], 'unique'],
-            [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => Users::className(), 'targetAttribute' => ['user_id' => 'user_id']],
+            [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => User::className(), 'targetAttribute' => ['user_id' => 'user_id']],
         ];
     }
 
@@ -61,7 +61,7 @@ class Blog extends \yii\db\ActiveRecord
      */
     public function getUser()
     {
-        return $this->hasOne(Users::className(), ['user_id' => 'user_id']);
+        return $this->hasOne(User::className(), ['user_id' => 'user_id']);
     }
 
     /**
@@ -71,12 +71,31 @@ class Blog extends \yii\db\ActiveRecord
     {
         return $this->hasMany(Post::className(), ['blog_id' => 'blog_id', 'user_id' => 'user_id']);
     }
-    public function fields():array
+
+    public static function findByBlogName($name)
     {
-       return [
-           'id' => 'blog_id',
-           'name' => 'blog_name',
-           //'s_desc' => 'short_description',
-       ];
+        return static::findOne(['blog_name' => $name]);
+    }
+
+    public static function findBlogByUserID($id){
+        return static::findAll(['user_id' => $id]);
+    }
+
+    public function fields(): array
+    {
+        return [
+            'id' => 'blog_id',
+            'name' => 'blog_name'
+        ];
+    }
+
+    /**
+     *
+     * @inheritdoc
+     * @return BlogQuery the active query used by this AR class.
+     */
+    public static function find()
+    {
+        return new BlogQuery(get_called_class());
     }
 }

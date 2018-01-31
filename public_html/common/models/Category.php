@@ -61,4 +61,25 @@ class Category extends \yii\db\ActiveRecord
     {
         return $this->hasMany(Post::className(), ['post_id' => 'post_id'])->viaTable('posts_has_category', ['category_id' => 'id']);
     }
+
+    public static function findCategory($tag){
+        return static::find()->where("name LIKE '%$tag%'")->all();
+    }
+
+    public function fields()
+    {
+        return [
+            'value' => 'id',
+            'text' => 'name'
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     * @return CategoryQuery the active query used by this AR class.
+     */
+    public static function find()
+    {
+        return new CategoryQuery(get_called_class());
+    }
 }

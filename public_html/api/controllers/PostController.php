@@ -109,6 +109,9 @@ class PostController extends ActiveController
         $model->tagsIds = array_merge($existTags, $items);
         $model->categoryIds = floatval(Yii::$app->getRequest()->getBodyParam("category"));
         if ($model->load(Yii::$app->getRequest()->getBodyParams(), '')) {
+            $model->post_name = trim(htmlentities($model->post_name));
+            $model->post_text = trim(htmlentities($model->post_text));
+            $model->short_description = trim(htmlentities($model->short_description));
             if ($model->save() === false) {
                 if (!$model->hasErrors()) {
                     throw new ServerErrorHttpException('Failed to create the object for unknown reason.');

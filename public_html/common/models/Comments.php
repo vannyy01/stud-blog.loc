@@ -14,7 +14,6 @@ use Yii;
  * @property string $created_at
  * @property int $rait
  * @property int $user_id
- *
  * @property Posts $post
  * @property Users $user
  */
@@ -59,12 +58,17 @@ class Comments extends \yii\db\ActiveRecord
         ];
     }
 
+    public function getChild()
+    {
+        return [];
+    }
+
     /**
      * @return \yii\db\ActiveQuery
      */
     public function getPost()
     {
-        return $this->hasOne(Posts::className(), ['post_id' => 'post_id']);
+        return $this->hasOne(Post::className(), ['post_id' => 'post_id']);
     }
 
     /**
@@ -74,13 +78,15 @@ class Comments extends \yii\db\ActiveRecord
     {
         return $this->hasOne(User::className(), ['user_id' => 'user_id']);
     }
-    public function fields():array {
+
+    public function fields(): array
+    {
         return [
             'comment_id',
             'parent_id',
-            'post_id' ,
-            'comment_text' ,
-            'created_at' ,
+            'post_id',
+            'comment_text',
+            'created_at',
             'rait',
             'user',
         ];

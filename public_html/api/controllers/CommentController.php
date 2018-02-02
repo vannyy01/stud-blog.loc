@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace api\controllers;
 
+use api\models\BinaryTree;
 use api\models\PostSearch;
+use api\models\Tree;
 use common\models\Category;
 use common\models\Post;
 use common\models\Comments;
@@ -70,10 +72,36 @@ class CommentController extends ActiveController
         return $actions;
     }
 
-    public function actionComments():array
+    public function actionComments()
     {
         $post_id = Yii::$app->request->getQueryParam("post_id");
-        $comments = Comments::findAll(["post_id" => $post_id]);
-        return $comments;
+        $comments = Comments::find()->where(["post_id" => $post_id])->asArray()->all();
+        global $a_rows;
+        $wood = [];
+        function getChild($parent)
+        {
+            global $a_rows;
+            $array = [];
+            $i = 0;
+            foreach ($a_rows as $row) {
+                if ($parent['comment_id'] == $row['parent_id']) {
+                    $array[$i] = $row;
+                    $array[$i]['child'] = [];
+                    $array[$i]['child'] = getChild($row);
+                    $i++;
+                }
+            }
+            return $array;
+        }
+
+        $a_rows = $comments;
+        foreach ($a_rows as $row) {
+            if (empty($row['parent_id'])) {
+                $row['child'] = getChild($row);
+                // print_r($row); die();
+                $wood[$row['comment_id']] = $row;
+            }
+        }
+        return $wood;
     }
 }

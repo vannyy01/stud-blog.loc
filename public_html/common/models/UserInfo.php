@@ -34,6 +34,7 @@ class UserInfo extends \yii\db\ActiveRecord
             [['user_id'], 'integer'],
             [['birth'], 'safe'],
             [['male'], 'string', 'max' => 45],
+            [['avatar'], 'string', 'max' => 45],
             [['favour_desc'], 'string', 'max' => 255],
             [['user_id'], 'unique'],
             [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => User::className(), 'targetAttribute' => ['user_id' => 'user_id']],
@@ -56,9 +57,10 @@ class UserInfo extends \yii\db\ActiveRecord
     public function fields()
     {
         return [
+            'avatar',
             'male',
             'birth',
-            'favour_desc'
+            'favour_desc',
         ];
     }
 

@@ -3,12 +3,9 @@ declare(strict_types=1);
 
 namespace common\models;
 
-use voskobovich\behaviors\ManyToManyBehavior;
 use Yii;
 use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
-use common\models\User;
-use common\models\Blog;
 use yii2tech\ar\linkmany\LinkManyBehavior;
 
 /**
@@ -25,7 +22,7 @@ use yii2tech\ar\linkmany\LinkManyBehavior;
  * @property int $tagsIds
  * @property int categoryIds
  * @property Comments[] $comments
- * @property Blogs $blog
+ * @property Blog $blog
  * @property PostsHasCategory[] $postsHasCategories
  * @property Category[] $categories
  * @property PostsHasTags[] $postsHasTags
@@ -33,8 +30,10 @@ use yii2tech\ar\linkmany\LinkManyBehavior;
  */
 class Post extends ActiveRecord
 {
+    use UserTrait;
+
     /**
-     * @inheritdoc
+     * @return string
      */
     public static function tableName(): string
     {
@@ -42,7 +41,7 @@ class Post extends ActiveRecord
     }
 
     /**
-     * @inheritdoc
+     * @return array
      */
     public function rules(): array
     {
@@ -59,7 +58,7 @@ class Post extends ActiveRecord
     }
 
     /**
-     * @inheritdoc
+     * @return array
      */
     public function attributeLabels(): array
     {
@@ -75,7 +74,10 @@ class Post extends ActiveRecord
         ];
     }
 
-    public function behaviors()
+    /**
+     * @return array
+     */
+    public function behaviors(): array
     {
         return [
             'linkTags' => [
@@ -92,9 +94,37 @@ class Post extends ActiveRecord
     }
 
     /**
+     * @param $id
+     * @return bool
+     */
+    public static function IncrementComment($id): bool
+    {
+        $comment = static::findOne(["post_id" => $id]);
+        if ($comment) {
+            return $comment->updateCounters(['rait' => 1]);
+        }
+        return false;
+    }
+
+    /**
+     * @param $id
+     * @return bool
+     */
+    public static function DecrementComment($id): bool
+    {
+        $comment = static::findOne(["post_id" => $id]);
+        if ($comment) {
+            return $comment->updateCounters(['rait' => -1]);
+        }
+
+        return false;
+
+    }
+
+    /**
      * @return \yii\db\ActiveQuery
      */
-    public function getComments()
+    public function getComments(): ActiveQuery
     {
         return $this->hasMany(Comments::className(), ['posts_post_id' => 'post_id']);
     }
@@ -111,7 +141,7 @@ class Post extends ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getCategory()
+    public function getCategory(): ActiveQuery
     {
         return $this->hasMany(Category::className(), ['id' => 'category_id'])->viaTable('posts_has_category', ['post_id' => 'post_id']);
     }
@@ -120,28 +150,25 @@ class Post extends ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getTags()
+    public function getTags(): ActiveQuery
     {
         return $this->hasMany(Tags::className(), ['id' => 'tags_id'])->viaTable('posts_has_tags', ['posts_post_id' => 'post_id']);
     }
 
-    /**
-     * @return ActiveQuery
-     */
-    public function getUser(): ActiveQuery
-    {
-        return $this->hasOne(User::className(), ['user_id' => 'user_id']);
-    }
 
     /**
      * @inheritdoc
      * @return PostQuery the active query used by this AR class.
      */
-    public static function find()
+    public static function find(): PostQuery
     {
         return new PostQuery(get_called_class());
     }
 
+    /**
+     * @param $post_name
+     * @return null|static
+     */
     public static function findByPostName($post_name)
     {
         return static::findOne(['post_name' => $post_name]);
@@ -158,9 +185,8 @@ class Post extends ActiveRecord
             'short_description',
             'created_at',
             'category',
-            'categoryIds',
             'rait',
-            'tagsIds',
+            'avatar'
         ];
     }
 
@@ -173,6 +199,7 @@ class Post extends ActiveRecord
             'text' => 'post_text',
             'author' => 'user',
             'blog' => 'blog',
+            'tags'
         ];
     }
 }

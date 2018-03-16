@@ -3,6 +3,7 @@
 namespace common\models;
 
 use Yii;
+use yii\db\ActiveQuery;
 
 /**
  * This is the model class for table "comments".
@@ -14,38 +15,40 @@ use Yii;
  * @property string $created_at
  * @property int $rait
  * @property int $user_id
- * @property Posts $post
- * @property Users $user
+ * @property Post $post
+ * @property User $user
  */
 class Comments extends \yii\db\ActiveRecord
 {
+    use UserTrait;
+
     /**
-     * @inheritdoc
+     * @return string
      */
-    public static function tableName()
+    public static function tableName():string
     {
         return 'comments';
     }
 
     /**
-     * @inheritdoc
+     * @return array
      */
-    public function rules()
+    public function rules():array
     {
         return [
             [['parent_id', 'post_id', 'rait', 'user_id'], 'integer'],
             [['post_id', 'comment_text', 'user_id'], 'required'],
             [['comment_text'], 'string'],
             [['created_at'], 'safe'],
-            [['post_id'], 'exist', 'skipOnError' => true, 'targetClass' => Posts::className(), 'targetAttribute' => ['post_id' => 'post_id']],
-            [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => Users::className(), 'targetAttribute' => ['user_id' => 'user_id']],
+            [['post_id'], 'exist', 'skipOnError' => true, 'targetClass' => Post::className(), 'targetAttribute' => ['post_id' => 'post_id']],
+            [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => User::className(), 'targetAttribute' => ['user_id' => 'user_id']],
         ];
     }
 
     /**
-     * @inheritdoc
+     * @return array
      */
-    public function attributeLabels()
+    public function attributeLabels():array
     {
         return [
             'comment_id' => 'Comment ID',
@@ -58,15 +61,10 @@ class Comments extends \yii\db\ActiveRecord
         ];
     }
 
-    public function getChild()
-    {
-        return [];
-    }
-
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getPost()
+    public function getPost():ActiveQuery
     {
         return $this->hasOne(Post::className(), ['post_id' => 'post_id']);
     }
@@ -74,11 +72,14 @@ class Comments extends \yii\db\ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getUser()
+    public function getUser():ActiveQuery
     {
         return $this->hasOne(User::className(), ['user_id' => 'user_id']);
     }
 
+    /**
+     * @return array
+     */
     public function fields(): array
     {
         return [
@@ -89,7 +90,36 @@ class Comments extends \yii\db\ActiveRecord
             'created_at',
             'rait',
             'user',
+            'avatar'
         ];
+    }
+
+    /**
+     * @param $id
+     * @return bool
+     */
+    public static function IncrementComment($id):bool
+    {
+        $comment = self::findOne(["comment_id" => $id]);
+        if($comment){
+           return $comment->updateCounters(['rait' => 1]);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * @param $id
+     * @return bool
+     */
+    public static function DecrementComment($id):bool
+    {
+        $comment = self::findOne(["comment_id" => $id]);
+        if($comment){
+            return $comment->updateCounters(['rait' => -1]);
+        } else {
+            return false;
+        }
     }
 
     /**

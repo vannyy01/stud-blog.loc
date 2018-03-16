@@ -57,15 +57,30 @@ return [
                 [
                     'class' => 'yii\rest\UrlRule',
                     'pluralize' => false, //отключаем преобразование во множественную форму
+                    'controller' => 'site',
+                    'extraPatterns' => [
+                        'GET active' => 'active',
+                        'OPTIONS active' => 'options',
+                    ],
+                ],
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'pluralize' => false, //отключаем преобразование во множественную форму
                     'controller' => 'post',
                     'extraPatterns' => [
+                        'GET likes' => 'likes',
+                        'OPTIONS likes' => 'options',
                         'GET test' => 'test',
                         'OPTIONS test' => 'options',
                         'GET tags' => 'tags',
                         'OPTIONS tags' => 'options',
                         'GET category' => 'category',
                         'OPTIONS category' => 'options',
-                        'OPTIONS create' => 'options'
+                        'OPTIONS create' => 'options',
+                        'PUT PATCH increment' => 'increment',
+                        'OPTIONS increment' => 'options',
+                        'PUT PATCH decrement' => 'decrement',
+                        'OPTIONS decrement' => 'options',
                     ],
                     'except' => ['index', 'create', 'delete']
                 ],
@@ -80,6 +95,10 @@ return [
                         'OPTIONS user' => 'options',
                         'PUT PATCH update' => 'update',
                         'OPTIONS update' => 'options',
+                        'POST avatar_update' => 'avatar_update',
+                        'OPTIONS avatar_update' => 'options',
+                        'POST fakeavatar' => 'fakeavatar',
+                        'OPTIONS fakeavatar' => 'options'
                     ],
                 ],
                 [
@@ -93,6 +112,19 @@ return [
                         'OPTIONS blogs' => 'options',
                         'POST create' => 'create',
                         'OPTIONS create' => 'options',
+                    ],
+                ],
+                [
+                    'class' => 'yii\rest\UrlRule',
+                    'pluralize' => false, //отключаем преобразование во множественную форму
+                    'controller' => 'comment',
+                    'extraPatterns' => [
+                        'POST create' => 'create',
+                        'OPTIONS create' => 'options',
+                        'PUT PATCH increment' => 'increment',
+                        'OPTIONS increment' => 'options',
+                        'PUT PATCH decrement' => 'decrement',
+                        'OPTIONS decrement' => 'options',
                     ],
                 ],
             ],

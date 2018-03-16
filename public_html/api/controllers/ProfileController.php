@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace api\controllers;
 
+use api\models\ImageForm;
 use common\models\User;
 use common\models\UserInfo;
+use function PHPSTORM_META\type;
 use Yii;
 use yii\filters\AccessControl;
 use yii\filters\Cors;
@@ -12,6 +14,7 @@ use yii\helpers\Json;
 use yii\filters\auth\HttpBearerAuth;
 use yii\rest\ActiveController;
 use yii\web\ServerErrorHttpException;
+use yii\web\UploadedFile;
 
 class ProfileController extends ActiveController
 {
@@ -26,7 +29,7 @@ class ProfileController extends ActiveController
             'class' => Cors::className(),
             'cors' => [
                 'Origin' => ['http://localhost:3030'],
-                'Access-Control-Request-Method' => ['GET', 'POST', 'PUT', 'PATCH','OPTIONS'],
+                'Access-Control-Request-Method' => ['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS'],
                 'Access-Control-Request-Headers' => ['*'],
                 'Access-Control-Allow-Credentials' => null,
             ],
@@ -36,7 +39,7 @@ class ProfileController extends ActiveController
         $behaviors['authenticator']['authMethods'] = [
             HttpBearerAuth::className(),
         ];
-        $behaviors['authenticator']['only'] = ['user','update', 'delete'];
+        $behaviors['authenticator']['only'] = ['user', 'avatar_update', 'fakeavatar', 'update', 'delete'];
 
         $behaviors['access'] = [
             'class' => AccessControl::className(),
@@ -88,6 +91,20 @@ class ProfileController extends ActiveController
         return User::findIdentityByAccessToken($token);
     }
 
+    public function actionAvatar_update()
+    {
+        $model = new ImageForm();
+        $image = UploadedFile::getInstanceByName('file');
+        $image->name = "user_" . Yii::$app->user->id;
+        $model->setImage($image);
+        $model->user_id = Yii::$app->user->id;
+        return $model->upload();
+    }
+
+    /**
+     * @return User
+     * @throws ServerErrorHttpException
+     */
     public function actionCreate()
     {
         $model = new User();
@@ -105,6 +122,11 @@ class ProfileController extends ActiveController
         } else {
             Yii::$app->response->setStatusCode(501, 'Failed to load users info')->send();
         }
+    }
+
+    public function actionFakeavatar()
+    {
+        Yii::$app->response->setStatusCode(200)->send();
     }
 
     public function actionUpdate()
@@ -128,6 +150,8 @@ class ProfileController extends ActiveController
             'index' => ['get'],
             'create' => ['post'],
             'update' => ['put', 'patch'],
+            'avatar_update' => ['post'],
+            'fakeavatar' => ['post'],
         ];
     }
 

@@ -1,8 +1,10 @@
 <?php
+declare(strict_types=1);
 
 namespace common\models;
 
 use Yii;
+use yii\db\ActiveQuery;
 
 /**
  * This is the model class for table "blogs".
@@ -13,23 +15,25 @@ use Yii;
  * @property string $short_description
  * @property string $created_at
  *
- * @property Users $user
- * @property Posts[] $posts
+ * @property User $user
+ * @property Post[] $posts
  */
 class Blog extends \yii\db\ActiveRecord
 {
+    use UserTrait;
+
     /**
-     * @inheritdoc
+     * @return string
      */
-    public static function tableName()
+    public static function tableName(): string
     {
         return 'blogs';
     }
 
     /**
-     * @inheritdoc
+     * @return array
      */
-    public function rules()
+    public function rules(): array
     {
         return [
             [['user_id', 'blog_name', 'short_description'], 'required'],
@@ -43,9 +47,9 @@ class Blog extends \yii\db\ActiveRecord
     }
 
     /**
-     * @inheritdoc
+     * @return array
      */
-    public function attributeLabels()
+    public function attributeLabels(): array
     {
         return [
             'blog_id' => 'Blog ID',
@@ -59,7 +63,7 @@ class Blog extends \yii\db\ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getUser()
+    public function getUser(): ActiveQuery
     {
         return $this->hasOne(User::className(), ['user_id' => 'user_id']);
     }
@@ -67,20 +71,32 @@ class Blog extends \yii\db\ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getPosts()
+    public function getPosts(): ActiveQuery
     {
         return $this->hasMany(Post::className(), ['blog_id' => 'blog_id', 'user_id' => 'user_id']);
     }
 
+    /**
+     * @param $name
+     * @return null|static
+     */
     public static function findByBlogName($name)
     {
         return static::findOne(['blog_name' => $name]);
     }
 
-    public static function findBlogByUserID($id){
+    /**
+     * @param $id
+     * @return static[]
+     */
+    public static function findBlogByUserID($id): array
+    {
         return static::findAll(['user_id' => $id]);
     }
 
+    /**
+     * @return array
+     */
     public function fields(): array
     {
         return [
@@ -90,11 +106,23 @@ class Blog extends \yii\db\ActiveRecord
     }
 
     /**
+     * @return array
+     */
+    public function extraFields(): array
+    {
+        return [
+            'short_description',
+            'avatar',
+            'author' => 'user',
+        ];
+    }
+
+    /**
      *
      * @inheritdoc
      * @return BlogQuery the active query used by this AR class.
      */
-    public static function find()
+    public static function find():BlogQuery
     {
         return new BlogQuery(get_called_class());
     }

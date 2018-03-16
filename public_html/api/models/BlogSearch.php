@@ -3,23 +3,19 @@ declare(strict_types=1);
 
 namespace api\models;
 
-use Codeception\Lib\Generator\PageObject;
+use common\models\Blog;
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
-use common\models\Post;
 
-class PostSearch extends Post
+class BlogSearch extends Blog
 {
-    /**
-     * @return array
-     */
     public function rules(): array
     {
         return [
-            [['post_name'], 'safe'],
-            [['post_name'], 'string', 'max' => 255],
-            [['post_id', 'blog_id'], 'safe'],
-            [['post_id', 'blog_id'], 'integer'],
+            [['blog_name'], 'safe'],
+            [['blog_name'], 'string', 'max' => 100],
+            [['blog_id'], 'safe'],
+            [['blog_id'], 'integer'],
         ];
     }
 
@@ -37,11 +33,11 @@ class PostSearch extends Post
      */
     public function search($params): ActiveDataProvider
     {
-        $query = Post::find();
+        $query = Blog::find();
 
         $dataProvider = new ActiveDataProvider([
             'pagination' => [
-                'pageSize' => 5,
+                'pageSize' => 10,
             ],
             'query' => $query,
         ]);
@@ -52,13 +48,15 @@ class PostSearch extends Post
             return $dataProvider;
         }
 
+        $query->andFilterWhere(['like', 'blog_name', $this->blog_name]);
         $query->andFilterWhere(['blog_id' => $this->blog_id]);
-        $query->andFilterWhere(['like', 'post_name', $this->post_name]);
-        $query->andFilterWhere(['post_id' => $this->post_id]);
         return $dataProvider;
     }
 
-    public function formName(): string
+    /**
+     * @return string
+     */
+    public function formName():string
     {
         return 's';
     }

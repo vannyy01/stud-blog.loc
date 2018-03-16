@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 namespace api\controllers;
 
+use api\models\PostFull;
 use api\models\PostSearch;
 use common\models\Category;
 use common\models\Post;
 use common\models\Tags;
 use Yii;
+use yii\data\ActiveDataProvider;
 use yii\filters\AccessControl;
 use yii\filters\auth\HttpBearerAuth;
 use yii\rest\ActiveController;
@@ -37,7 +39,7 @@ class PostController extends ActiveController
             'class' => \yii\filters\Cors::className(),
             'cors' => [
                 'Origin' => static::allowedDomains(),
-                'Access-Control-Request-Method' => ['GET', 'POST', 'OPTIONS'],
+                'Access-Control-Request-Method' => ['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS'],
                 'Access-Control-Request-Headers' => ['*'],
                 'Access-Control-Allow-Credentials' => null,
             ],
@@ -47,11 +49,16 @@ class PostController extends ActiveController
         $behaviors['authenticator']['authMethods'] = [
             HttpBearerAuth::className(),
         ];
-        $behaviors['authenticator']['only'] = ['test', 'create', 'update', 'delete'];
+        $behaviors['authenticator']['only'] = ['test', 'likes', 'create', 'update', 'delete'];
         $behaviors['access'] = [
             'class' => AccessControl::className(),
-            'only' => ['test', 'update', 'delete'],
+            'only' => ['validate', 'create', 'update', 'delete'],
             'rules' => [
+                [
+                    'allow' => true,
+                    'actions' => ['validate'],
+                    'roles' => ['?'],
+                ],
                 [
                     'allow' => true,
                     'roles' => ['@'],
@@ -61,8 +68,10 @@ class PostController extends ActiveController
         return $behaviors;
     }
 
-
-    public function actions()
+    /**
+     * @return array
+     */
+    public function actions(): array
     {
         $actions = parent::actions();
         unset($actions['create']);
@@ -70,15 +79,63 @@ class PostController extends ActiveController
         return $actions;
     }
 
+    /**
+     * public function beforeAction($action)
+     * {
+     * if (parent::beforeAction($action)) {
+     * if (!Yii::$app->user->can('admin',['post' => $this->modelClass])) {
+     * // var_dump(Yii::$app->user->id);die();
+     * throw new ForbiddenHttpException('Access denied');
+     * }
+     * return true;
+     * } else {
+     * return false;
+     * }
+     * }**/
 
     public function actionValidate(): bool
     {
         if (@Post::findByPostName(Yii::$app->request->queryParams["post_name"])) {
             return false;
-        } else {
-            return true;
         }
+            return true;
+    }
 
+    /**
+     * @return array|Post[]
+     * @throws ServerErrorHttpException
+     */
+    public function actionLikes(): array
+    {
+        $arr = [];
+        $favs = Yii::$app->getRequest()->getQueryParam("likes");
+        $post_name = Yii::$app->getRequest()->getQueryParam("post_name");
+        if (!empty($favs)) {
+            $likes = ltrim($favs, '[');
+            $likes = rtrim($likes, ']');
+            $likes = explode(",", $likes);
+            if (!empty($post_name)) {
+                $arr = PostFull::find()->where(["like", "post_name", $post_name])->all();
+                $posts = [];
+                foreach ($likes as $like) {
+                    foreach ($arr as $value) {
+                        if ($value->post_id == $like) $posts[] = $value;
+                    }
+                }
+                $arr = $posts;
+            } else {
+                foreach ($likes as $key => $like) {
+                    if ($post = PostFull::findOne(["post_id" => $like])) {
+                        $arr[] = $post;
+                    }
+                    if (count($arr) >= 5) break;
+                }
+            }
+        }
+        if (empty($favs)) {
+            throw new ServerErrorHttpException('Doesn`t find posts with these ids');
+        }
+        return $arr;
     }
 
     public function actionTest()
@@ -88,7 +145,12 @@ class PostController extends ActiveController
 
     }
 
-    public function actionCreate()
+    /**
+     * @return array
+     * @throws ServerErrorHttpException
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function actionCreate(): array
     {
         $model = new Post();
         $items = [];
@@ -119,9 +181,8 @@ class PostController extends ActiveController
                 throw new ServerErrorHttpException('Failed to create the object for incorect data.');
             }
             return ['status' => true];
-        } else {
-            throw new ServerErrorHttpException('Don`t create post.');
         }
+        throw new ServerErrorHttpException('Didn`tt create post.');
     }
 
     /**
@@ -130,6 +191,7 @@ class PostController extends ActiveController
     public function actionTags(): array
     {
         $tag = Yii::$app->getRequest()->getQueryParam("tag");
+        $tag = \GuzzleHttp\json_decode($tag);
         return Tags::findByTag($tag);
     }
 
@@ -142,27 +204,70 @@ class PostController extends ActiveController
         return Category::findCategory($tag);
     }
 
-    public function prepareDataProvider()
+    /**
+     * @return bool
+     * @throws ServerErrorHttpException
+     */
+    public function actionIncrement(): bool
+    {
+        $id = Yii::$app->getRequest()->getBodyParam('id');
+        if ($id) {
+            return Post::IncrementComment($id);
+        }
+        throw new ServerErrorHttpException('Incorect comment id.');
+
+    }
+
+    /**
+     * @return bool
+     * @throws ServerErrorHttpException
+     */
+    public function actionDecrement(): bool
+    {
+        $id = Yii::$app->getRequest()->getBodyParam('id');
+        if ($id) {
+            return Post::DecrementComment($id);
+        }
+        throw new ServerErrorHttpException('Incorect comment id.');
+
+    }
+
+    /**
+     * @return \yii\data\ActiveDataProvider
+     */
+    public function prepareDataProvider(): ActiveDataProvider
     {
         $searchModel = new PostSearch();
         return $searchModel->search(Yii::$app->request->queryParams);
     }
 
+    /**
+     * @param string $action
+     * @param null $model
+     * @param array $params
+     * @throws ForbiddenHttpException
+     */
     public function checkAccess($action, $model = null, $params = [])
     {
-        if (in_array($action, ['update', 'delete'])) {
+        if (in_array($action, ['test', 'likes', 'create', 'update', 'delete', 'validate'])) {
             if (!Yii::$app->user->can(Rbac::MANAGE_POST, ['post' => $model])) {
                 throw  new ForbiddenHttpException('Forbidden.');
             }
         }
     }
 
+    /**
+     * @return array
+     */
     protected function verbs(): array
     {
         return ['test' => ['get'],
             'create' => ['post', 'options'],
             'tags' => ['get', 'options'],
-            'category' => ['get', 'options']
+            'category' => ['get', 'options'],
+            'increment' => ['put', 'patch'],
+            'decrement' => ['put', 'patch'],
+            'likes' => ['get', 'options'],
         ];
     }
 }

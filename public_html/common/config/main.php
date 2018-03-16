@@ -6,12 +6,13 @@ return [
     ],
     'vendorPath' => dirname(dirname(__DIR__)) . '/vendor',
     'components' => [
-        'cache' => [
-            'class' => 'yii\caching\FileCache',
-        ],
+        //..
         'authManager' => [
-            'class' => 'yii\rbac\PhpManager',
+            'class' => 'yii\rbac\DbManager',
+            'cache' => 'cache' //Включаем кеширование
         ],
-
-    ],
+        'cache' => [
+            'class' => 'yii\caching\FileCache',  // Подключаем файловое кэширование данных
+        ],
+    ]
 ];

@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 namespace api\controllers;
 
+use api\models\BlogSearch;
 use api\models\PostSearch;
 use common\models\Blog;
 use common\models\Category;
 use common\models\Post;
 use Yii;
+use yii\data\ActiveDataProvider;
 use yii\filters\AccessControl;
 use yii\filters\auth\HttpBearerAuth;
 use yii\helpers\Url;
@@ -86,38 +88,45 @@ class BlogController extends ActiveController
         return Blog::findBlogByUserID(Yii::$app->user->id);
     }
 
-
-    public function actionCreate()
+    /**
+     * @return Blog
+     * @throws ServerErrorHttpException
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function actionCreate():Blog
     {
         $model = new Blog();
         $model->user_id = Yii::$app->user->id;
         if ($model->load(Yii::$app->getRequest()->getBodyParams(), '')) {
             if ($model::findByBlogName($model->blog_name)) {
-                return Yii::$app->response->setStatusCode(432, 'Blog name has taken')->send();
+                 Yii::$app->response->setStatusCode(432, 'Blog name has taken')->send();
             } else if ($model->save() === false && !$model->hasErrors()) {
                 throw new ServerErrorHttpException('Failed to update the object for unknown reason.');
             }
-            return $model;
         }
-
+        return $model;
     }
-
-    public function prepareDataProvider()
-    {
-        $searchModel = new PostSearch();
-        return $searchModel->search(Yii::$app->request->queryParams);
-    }
-
 
     public function actionValidate(): bool
     {
-        if (@Blog::findByBlogName(Yii::$app->request->queryParams["blog_name"])) {
-            return false;
-        } else {
-            return true;
-        }
-
+        return !((bool) (Blog::findByBlogName(Yii::$app->request->queryParams["blog_name"])));
     }
+
+    /**
+     * @return \yii\data\ActiveDataProvider
+     */
+    public function prepareDataProvider(): ActiveDataProvider
+    {
+        $searchModel = new BlogSearch();
+        return $searchModel->search(Yii::$app->request->queryParams);
+    }
+
+    /**
+     * @param string $action
+     * @param null $model
+     * @param array $params
+     * @throws ForbiddenHttpException
+     */
 
     public function checkAccess($action, $model = null, $params = [])
     {

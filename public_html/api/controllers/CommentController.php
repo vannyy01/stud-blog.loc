@@ -15,14 +15,8 @@ use yii\web\ServerErrorHttpException;
 
 class CommentController extends ActiveController
 {
+    use Domain;
     public $modelClass = 'common\models\Comments';
-
-    private static function allowedDomains(): array
-    {
-        return [
-            'http://localhost:3030'
-        ];
-    }
 
     /**
      * @return array

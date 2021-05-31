@@ -180,7 +180,7 @@ class PostController extends ActiveController
                 }
                 throw new ServerErrorHttpException('Failed to create the object for incorect data.');
             }
-            return ['status' => true];
+            return ['status' => $model];
         }
         throw new ServerErrorHttpException('Didn`tt create post.');
     }

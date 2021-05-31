@@ -19,7 +19,7 @@ class ImageForm extends Model
     {
         return [
             ['imageFile', 'safe'],
-            [['imageFile'], 'image', 'maxWidth' => 300, 'maxHeight' => 300, 'maxSize' => 25600, 'skipOnEmpty' => false, 'mimeTypes' =>
+            [['imageFile'], 'image', 'maxWidth' => 300, 'maxHeight' => 300, 'maxSize' => 256000, 'skipOnEmpty' => false, 'mimeTypes' =>
                 ['image/png', 'image/jpeg', 'image/jpg']],
         ];
     }
@@ -63,11 +63,7 @@ class ImageForm extends Model
         return empty($a) ? [] : $a;
     }
 
-    /**
-     * @return bool
-     * return true if the file was uploaded or updated and when the filename was inserted or updated in the DB
-     */
-    public function upload(): bool
+    public function upload()
     {
         if ($this->validate()) {
             $extension = stristr($this->imageFile->type, '/');
@@ -81,9 +77,11 @@ class ImageForm extends Model
                 $this->imageFile->saveAs($file_name);
                 return true;
             } else {
+
                 foreach ($file as $value) {
                     unlink(\Yii::getAlias('@react') . '/user-images/' . $value);
                 }
+              //  var_dump( $this->imageFile->saveAs($file_name));die();
                 $this->imageFile->saveAs($file_name);
                 return true;
             }

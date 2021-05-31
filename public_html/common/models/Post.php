@@ -122,6 +122,14 @@ class Post extends ActiveRecord
     }
 
     /**
+     * @return string
+     */
+    public function getPostText():string
+    {
+        return str_replace(array("\r\n", "\r", "\n"), "<br>", $this->post_text);
+    }
+
+    /**
      * @return \yii\db\ActiveQuery
      */
     public function getComments(): ActiveQuery

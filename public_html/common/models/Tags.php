@@ -71,7 +71,7 @@ class Tags extends \yii\db\ActiveRecord
      */
     public static function findByTag($tag):array
     {
-        return static::find()->where("tag LIKE '%$tag%'")->all();
+        return static::find()->where("tag LIKE '%$tag%'")->limit(5)->all();
     }
 
     /**
